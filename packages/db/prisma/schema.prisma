@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -49,12 +49,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -150,7 +150,7 @@ model Course {
   id          String   @id @default(cuid())
   title       String
   slug        String   @unique
-  description String?  @db.Text
+  description String?  
   level       SchoolLevel?
   examType    ExamType?
   price       Int      @default(0) // in cents/won
@@ -203,8 +203,8 @@ model Question {
   examType    ExamType
   part        String?      // e.g., "Part 5", "RC Section 1"
   type        QuestionType
-  stem        String       @db.Text // Question text
-  passage     String?      @db.Text // Reading passage if applicable
+  stem        String        // Question text
+  passage     String?       // Reading passage if applicable
   audioUrl    String?
   imageUrl    String?
   difficulty  Float        @default(0.5) // 0.0 (easy) to 1.0 (hard)
@@ -226,7 +226,7 @@ model Choice {
   id         String  @id @default(cuid())
   questionId String
   label      String  // A, B, C, D
-  text       String  @db.Text
+  text       String  
   isCorrect  Boolean @default(false)
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
@@ -237,8 +237,8 @@ model Choice {
 model Explanation {
   id         String  @id @default(cuid())
   questionId String  @unique
-  text       String  @db.Text
-  richHtml   String? @db.Text
+  text       String  
+  richHtml   String? 
   videoUrl   String?
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
@@ -277,7 +277,7 @@ model SessionItem {
   questionId String
   orderIndex Int      // Order in session
   elapsedMs  Int?     // Time spent on this question
-  userAnswer String?  @db.Text // User's answer
+  userAnswer String?   // User's answer
   isCorrect  Boolean?
   flagged    Boolean  @default(false)
   skipped    Boolean  @default(false)
