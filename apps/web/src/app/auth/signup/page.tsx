@@ -49,10 +49,10 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4 py-12">
+      <Card variant="elevated" className="w-full max-w-md shadow-xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600 mb-2">PrepTap</h1>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">PrepTap</h1>
           <p className="text-gray-600">새 계정을 만드세요</p>
         </div>
 
@@ -86,16 +86,24 @@ export default function SignUpPage() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <Button type="submit" className="w-full" isLoading={registerMutation.isPending}>
+          <Button type="submit" className="w-full" isLoading={registerMutation.isPending} variant="primary">
             회원가입
           </Button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
           이미 계정이 있으신가요?{" "}
-          <Link href="/auth/signin" className="text-primary-600 hover:underline">
+          <Link href="/auth/signin" className="text-primary-600 hover:underline font-medium">
             로그인
           </Link>
+        </div>
+
+        <div className="mt-4 text-xs text-center text-gray-500">
+          가입하시면{" "}
+          <Link href="/terms" className="underline">이용약관</Link>
+          {" "}및{" "}
+          <Link href="/privacy" className="underline">개인정보처리방침</Link>
+          에 동의하는 것으로 간주됩니다.
         </div>
       </Card>
     </div>

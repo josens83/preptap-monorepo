@@ -38,10 +38,10 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4 py-12">
+      <Card variant="elevated" className="w-full max-w-md shadow-xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600 mb-2">PrepTap</h1>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">PrepTap</h1>
           <p className="text-gray-600">계정에 로그인하세요</p>
         </div>
 
@@ -66,14 +66,20 @@ export default function SignInPage() {
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <Button type="submit" className="w-full" isLoading={isLoading}>
+          <Button type="submit" className="w-full" isLoading={isLoading} variant="primary">
             로그인
           </Button>
         </form>
 
+        <div className="mt-4 text-center">
+          <Link href="/auth/forgot-password" className="text-sm text-primary-600 hover:underline">
+            비밀번호를 잊으셨나요?
+          </Link>
+        </div>
+
         <div className="mt-6 text-center text-sm text-gray-600">
           계정이 없으신가요?{" "}
-          <Link href="/auth/signup" className="text-primary-600 hover:underline">
+          <Link href="/auth/signup" className="text-primary-600 hover:underline font-medium">
             회원가입
           </Link>
         </div>
