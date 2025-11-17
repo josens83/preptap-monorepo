@@ -10,7 +10,11 @@
     "type-check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "prod:check": "tsx scripts/production-check.ts",
+    "prod:build": "pnpm prod:check && pnpm build",
+    "db:migrate": "cd ../../packages/db && pnpm prisma migrate deploy",
+    "db:seed": "cd ../../packages/db && pnpm prisma db seed"
   },
   "dependencies": {
     "@preptap/db": "workspace:*",
