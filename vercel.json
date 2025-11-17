@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next",
+  "regions": ["icn1"],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "NEXTAUTH_SECRET": "@nextauth_secret",
+    "NEXTAUTH_URL": "@nextauth_url",
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
+  },
+  "build": {
+    "env": {
+      "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING": "1"
+    }
+  },
+  "functions": {
+    "apps/web/src/app/api/**/*.ts": {
+      "maxDuration": 10
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=60, stale-while-revalidate"
+        }
+      ]
+    }
+  ]
+}
