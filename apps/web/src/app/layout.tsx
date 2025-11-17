@@ -5,8 +5,74 @@ import { Navbar } from "@/components/navbar";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 export const metadata: Metadata = {
-  title: "PrepTap - 기출로 실전감각, AI로 약점보완",
-  description: "수능·TEPS·TOEIC·TOEFL까지, 매일 내게 맞는 문제만",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  title: {
+    default: "PrepTap - AI 기반 적응형 학습 플랫폼",
+    template: "%s | PrepTap",
+  },
+  description:
+    "수능, TEPS, TOEIC, TOEFL, IELTS 시험 준비를 위한 AI 기반 적응형 학습 플랫폼. 개인 맞춤형 문제 추천, 실시간 약점 분석, 효율적인 학습 관리로 목표 점수를 달성하세요.",
+  keywords: [
+    "수능",
+    "TEPS",
+    "TOEIC",
+    "TOEFL",
+    "IELTS",
+    "영어 시험",
+    "적응형 학습",
+    "AI 학습",
+    "온라인 학습",
+    "시험 대비",
+    "문제 풀이",
+    "영어 공부",
+  ],
+  authors: [{ name: "PrepTap" }],
+  creator: "PrepTap",
+  publisher: "PrepTap",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: process.env.NEXT_PUBLIC_APP_URL,
+    siteName: "PrepTap",
+    title: "PrepTap - AI 기반 적응형 학습 플랫폼",
+    description:
+      "수능, TEPS, TOEIC, TOEFL, IELTS 시험 준비를 위한 AI 기반 적응형 학습 플랫폼",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PrepTap - AI 기반 적응형 학습 플랫폼",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PrepTap - AI 기반 적응형 학습 플랫폼",
+    description:
+      "수능, TEPS, TOEIC, TOEFL, IELTS 시험 준비를 위한 AI 기반 적응형 학습 플랫폼",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "your-google-verification-code",
+    // naver: "your-naver-verification-code",
+  },
 };
 
 export default function RootLayout({
