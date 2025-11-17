@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Button, Card, CardHeader, CardTitle, CardContent, Progress } from "@preptap/ui";
 import { trpc } from "@/lib/trpc/client";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/loading";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -36,14 +37,7 @@ export default function DashboardPage() {
   }, [status, router]);
 
   if (status === "loading" || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const stats = overview?.stats || {

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Navbar } from "@/components/navbar";
-
-const inter = Inter({ subsets: ["latin"] });
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export const metadata: Metadata = {
   title: "PrepTap - 기출로 실전감각, AI로 약점보완",
@@ -18,11 +16,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
-        <Providers>
-          <Navbar />
-          {children}
-        </Providers>
+      <body className="font-sans antialiased">
+        <ErrorBoundary>
+          <Providers>
+            <Navbar />
+            {children}
+          </Providers>
+        </ErrorBoundary>
       </body>
     </html>
   );
