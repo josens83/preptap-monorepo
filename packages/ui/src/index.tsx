@@ -21,3 +21,6 @@ export type { DropdownProps, DropdownItem } from "./components/Dropdown";
 
 export { Toast } from "./components/Toast";
 export type { ToastProps } from "./components/Toast";
+
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonList } from "./components/Skeleton";
+export type { SkeletonProps, SkeletonTextProps, SkeletonCardProps, SkeletonListProps } from "./components/Skeleton";

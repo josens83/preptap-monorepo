@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Button, Card, CardHeader, CardTitle, CardContent, Progress } from "@preptap/ui";
 import { trpc } from "@/lib/trpc/client";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/loading";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -36,14 +37,7 @@ export default function DashboardPage() {
   }, [status, router]);
 
   if (status === "loading" || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const stats = overview?.stats || {
@@ -234,11 +228,11 @@ export default function DashboardPage() {
             <CardContent>
               {recentSessions && recentSessions.length > 0 ? (
                 <div className="space-y-3">
-                  {recentSessions.map((session: any) => {
-                    const config = session.configJson as any;
+                  {recentSessions.map((session) => {
+                    const config = session.configJson;
                     const totalItems = session._count?.items || 0;
                     const correctItems =
-                      session.items?.filter((item: any) => item.isCorrect).length || 0;
+                      session.items?.filter((item) => item.isCorrect).length || 0;
                     const accuracy =
                       totalItems > 0 ? Math.round((correctItems / totalItems) * 100) : 0;
 
@@ -287,7 +281,7 @@ export default function DashboardPage() {
             <CardContent>
               {weaknesses && weaknesses.length > 0 ? (
                 <div className="space-y-4">
-                  {weaknesses.map((weakness: any) => {
+                  {weaknesses.map((weakness) => {
                     const accuracyPercent = Math.round((1 - weakness.score) * 100);
                     return (
                       <div key={weakness.tag}>
