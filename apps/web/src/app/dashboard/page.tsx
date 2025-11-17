@@ -237,11 +237,11 @@ export default function DashboardPage() {
             <CardContent>
               {recentSessions && recentSessions.length > 0 ? (
                 <div className="space-y-3">
-                  {recentSessions.map((session) => {
+                  {recentSessions.map((session: any) => {
                     const config = session.configJson as any;
                     const totalItems = session._count?.items || 0;
                     const correctItems =
-                      session.items?.filter((item) => item.isCorrect).length || 0;
+                      session.items?.filter((item: any) => item.isCorrect).length || 0;
                     const accuracy =
                       totalItems > 0 ? Math.round((correctItems / totalItems) * 100) : 0;
 
@@ -290,7 +290,7 @@ export default function DashboardPage() {
             <CardContent>
               {weaknesses && weaknesses.length > 0 ? (
                 <div className="space-y-4">
-                  {weaknesses.map((weakness) => {
+                  {weaknesses.map((weakness: any) => {
                     const accuracyPercent = Math.round((1 - weakness.score) * 100);
                     return (
                       <div key={weakness.tag}>

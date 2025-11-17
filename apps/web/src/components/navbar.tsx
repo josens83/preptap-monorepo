@@ -67,6 +67,11 @@ export function Navbar() {
                 <div className="text-sm text-gray-600">
                   {session.user?.email}
                 </div>
+                <Link href="/settings">
+                  <Button variant="outline" size="sm">
+                    ⚙️ 설정
+                  </Button>
+                </Link>
                 <Button
                   variant="outline"
                   size="sm"
@@ -148,6 +153,13 @@ export function Navbar() {
                   <div className="px-4 py-2 text-sm text-gray-600">
                     {session.user?.email}
                   </div>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    ⚙️ 설정
+                  </Link>
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);

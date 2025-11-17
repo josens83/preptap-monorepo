@@ -12,3 +12,12 @@ export type { BadgeProps } from "./components/Badge";
 
 export { Progress } from "./components/Progress";
 export type { ProgressProps } from "./components/Progress";
+
+export { Modal, ModalFooter } from "./components/Modal";
+export type { ModalProps, ModalFooterProps } from "./components/Modal";
+
+export { Dropdown, DropdownDivider } from "./components/Dropdown";
+export type { DropdownProps, DropdownItem } from "./components/Dropdown";
+
+export { Toast } from "./components/Toast";
+export type { ToastProps } from "./components/Toast";
