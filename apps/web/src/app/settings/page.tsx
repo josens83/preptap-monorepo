@@ -19,9 +19,34 @@ export default function SettingsPage() {
     enabled: !!session,
   });
 
+  const { data: subscriptionData, refetch: refetchSubscription } =
+    trpc.payments.getSubscriptionWithDetails.useQuery(undefined, {
+      enabled: !!session,
+    });
+
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
       alert("프로필이 업데이트되었습니다!");
+    },
+  });
+
+  const createBillingPortalMutation = trpc.payments.createBillingPortalSession.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
+
+  const cancelSubscriptionMutation = trpc.payments.cancelSubscription.useMutation({
+    onSuccess: (data) => {
+      alert(data.message);
+      refetchSubscription();
+    },
+  });
+
+  const reactivateSubscriptionMutation = trpc.payments.reactivateSubscription.useMutation({
+    onSuccess: (data) => {
+      alert(data.message);
+      refetchSubscription();
     },
   });
 
@@ -170,32 +195,128 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* 구독 정보 */}
+          {/* 구독 관리 */}
           <Card variant="bordered">
             <CardHeader>
-              <CardTitle>구독 정보</CardTitle>
+              <CardTitle>구독 관리</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {profile?.subscriptions?.[0]?.status === "ACTIVE"
-                      ? "Pro 플랜"
-                      : "Free 플랜"}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {profile?.subscriptions?.[0]?.status === "ACTIVE"
-                      ? "무제한 문제 풀이 및 모든 기능 이용 가능"
-                      : "하루 10문제 제한"}
-                  </p>
+              <div className="space-y-4">
+                {/* 현재 플랜 */}
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">현재 플랜</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xl font-bold text-gray-900">
+                        {subscriptionData?.plan?.name || "무료"}
+                      </p>
+                      {subscriptionData?.subscription && (
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            subscriptionData.isActive
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {subscriptionData.isActive ? "활성" : "비활성"}
+                        </span>
+                      )}
+                    </div>
+                    {subscriptionData?.plan?.price &&
+                      subscriptionData.plan.price > 0 && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          월 ₩{subscriptionData.plan.price.toLocaleString()}
+                        </p>
+                      )}
+                  </div>
+
+                  {!subscriptionData?.isActive && (
+                    <Button
+                      variant="primary"
+                      onClick={() => router.push("/pricing")}
+                    >
+                      업그레이드
+                    </Button>
+                  )}
                 </div>
-                {profile?.subscriptions?.[0]?.status !== "ACTIVE" && (
-                  <Button
-                    variant="primary"
-                    onClick={() => router.push("/pricing")}
-                  >
-                    업그레이드
-                  </Button>
+
+                {/* 구독 상세 정보 */}
+                {subscriptionData?.subscription && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">구독 시작일</span>
+                      <span className="font-medium">
+                        {new Date(
+                          subscriptionData.subscription.createdAt
+                        ).toLocaleDateString("ko-KR")}
+                      </span>
+                    </div>
+                    {subscriptionData.subscription.currentPeriodEnd && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">다음 결제일</span>
+                        <span className="font-medium">
+                          {new Date(
+                            subscriptionData.subscription.currentPeriodEnd
+                          ).toLocaleDateString("ko-KR")}
+                        </span>
+                      </div>
+                    )}
+                    {subscriptionData.subscription.cancelAtPeriodEnd && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          ⚠️ 구독이 취소 예정입니다.{" "}
+                          {subscriptionData.subscription.currentPeriodEnd &&
+                            new Date(
+                              subscriptionData.subscription.currentPeriodEnd
+                            ).toLocaleDateString("ko-KR")}{" "}
+                          까지 이용 가능합니다.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 구독 관리 버튼 */}
+                {subscriptionData?.isActive && (
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => createBillingPortalMutation.mutate()}
+                      isLoading={createBillingPortalMutation.isPending}
+                      className="flex-1"
+                    >
+                      결제 수단 관리
+                    </Button>
+
+                    {subscriptionData.subscription &&
+                    !subscriptionData.subscription.cancelAtPeriodEnd ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              "구독을 취소하시겠습니까? 현재 기간이 끝날 때까지 서비스를 이용할 수 있습니다."
+                            )
+                          ) {
+                            cancelSubscriptionMutation.mutate();
+                          }
+                        }}
+                        isLoading={cancelSubscriptionMutation.isPending}
+                        className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                      >
+                        구독 취소
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        onClick={() => reactivateSubscriptionMutation.mutate()}
+                        isLoading={reactivateSubscriptionMutation.isPending}
+                        className="flex-1"
+                      >
+                        구독 재활성화
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </CardContent>
