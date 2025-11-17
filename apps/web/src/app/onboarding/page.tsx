@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
   const handleComplete = () => {
     updateProfileMutation.mutate({
-      level: selectedLevel as any,
+      schoolLevel: selectedLevel as any,
       targetExam: selectedExam as any,
       targetScore: targetScore ? parseInt(targetScore) : undefined,
     });

@@ -48,7 +48,7 @@ export default function SettingsPage() {
     if (profile?.profile) {
       setDisplayName(profile.profile.displayName || "");
       setTargetExam(profile.profile.targetExam || "");
-      setLevel(profile.profile.level || "");
+      setLevel(profile.profile.schoolLevel || "");
       setTargetScore(profile.profile.targetScore?.toString() || "");
     }
   }, [profile]);
@@ -68,7 +68,7 @@ export default function SettingsPage() {
     updateProfileMutation.mutate({
       displayName: displayName || undefined,
       targetExam: targetExam as any,
-      level: level as any,
+      schoolLevel: level as any,
       targetScore: targetScore ? parseInt(targetScore) : undefined,
     });
   };

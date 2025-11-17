@@ -67,14 +67,23 @@ export default function PracticeSessionPage() {
   };
 
   const handleSubmit = (finalAnswers: Map<string, string>) => {
-    const submissions = Array.from(finalAnswers.entries()).map(([itemId, choiceId]) => ({
-      itemId,
-      selectedChoiceId: choiceId,
-    }));
+    const answers = Array.from(finalAnswers.entries()).map(([itemId, choiceId]) => {
+      // Find the choice to get its label
+      const item = items.find((i: any) => i.id === itemId);
+      const choice = item?.question.choices?.find((c: any) => c.id === choiceId);
+
+      return {
+        itemId,
+        userAnswer: choice?.label || "",
+        elapsedMs: 0, // TODO: Add timer tracking
+        flagged: false,
+        skipped: false,
+      };
+    });
 
     submitMutation.mutate({
       sessionId,
-      submissions,
+      answers,
     });
   };
 

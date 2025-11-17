@@ -29,11 +29,6 @@ export default function DashboardPage() {
     enabled: !!session,
   });
 
-  const { data: weaknesses } = trpc.report.getWeaknessDetail.useQuery(
-    { limit: 5 },
-    { enabled: !!session }
-  );
-
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
@@ -57,6 +52,8 @@ export default function DashboardPage() {
     averageAccuracy: 0,
     totalStudyMinutes: 0,
   };
+
+  const weaknesses = overview?.weaknesses?.slice(0, 5) || [];
 
   const hasActiveSubscription = profile?.subscriptions?.[0]?.status === "ACTIVE";
   const displayName = profile?.profile?.displayName || session.user?.email?.split("@")[0] || "학생";

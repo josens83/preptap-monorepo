@@ -10,7 +10,7 @@ export default function NotebookPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const { data: notebookData, isLoading } = trpc.notebook.get.useQuery({
-    tag: selectedTag || undefined,
+    tags: selectedTag ? [selectedTag] : undefined,
     limit: 50,
   });
 
@@ -42,8 +42,8 @@ export default function NotebookPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  const handleReviewSimilar = (questionId: string) => {
-    generateSimilarMutation.mutate({ questionId, count: 10 });
+  const handleReviewSimilar = () => {
+    generateSimilarMutation.mutate({ queueSize: 10 });
   };
 
   return (
@@ -220,10 +220,10 @@ export default function NotebookPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleReviewSimilar(question.id)}
+                        onClick={handleReviewSimilar}
                         isLoading={generateSimilarMutation.isPending}
                       >
-                        유사 문제 풀기
+                        복습 문제 시작
                       </Button>
                     </div>
                   </div>
