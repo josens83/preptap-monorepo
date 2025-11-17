@@ -4,20 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card } from "@preptap/ui";
 import { trpc } from "@/lib/trpc/client";
-
-const EXAM_TYPES = [
-  { id: "SUNEUNG", name: "수능", description: "대학수학능력시험" },
-  { id: "TOEIC", name: "TOEIC", description: "국제 비즈니스 영어" },
-  { id: "TEPS", name: "TEPS", description: "서울대 영어능력시험" },
-  { id: "TOEFL", name: "TOEFL", description: "미국 대학 입학시험" },
-  { id: "IELTS", name: "IELTS", description: "영국식 영어능력시험" },
-];
-
-const SCHOOL_LEVELS = [
-  { id: "HIGH", name: "고등학생" },
-  { id: "UNIVERSITY", name: "대학생" },
-  { id: "GRADUATE", name: "직장인/일반" },
-];
+import { EXAM_TYPES, SCHOOL_LEVELS } from "@/lib/constants";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -25,6 +12,11 @@ export default function OnboardingPage() {
   const [selectedExam, setSelectedExam] = useState("");
   const [targetScore, setTargetScore] = useState("");
   const router = useRouter();
+
+  // Filter school levels for onboarding (skip elementary and middle)
+  const onboardingLevels = SCHOOL_LEVELS.filter((level) =>
+    ["HIGH", "UNIVERSITY", "ADULT"].includes(level.id)
+  );
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
@@ -62,7 +54,7 @@ export default function OnboardingPage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">현재 학력 단계를 선택해주세요</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {SCHOOL_LEVELS.map((level) => (
+              {onboardingLevels.map((level) => (
                 <button
                   key={level.id}
                   onClick={() => {
@@ -86,7 +78,7 @@ export default function OnboardingPage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">준비하고 있는 시험을 선택해주세요</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {EXAM_TYPES.map((exam) => (
+              {EXAM_TYPES.filter((exam) => exam.id !== "CUSTOM").map((exam) => (
                 <button
                   key={exam.id}
                   onClick={() => {
@@ -100,7 +92,7 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <div className="text-lg font-medium mb-1">{exam.name}</div>
-                  <div className="text-sm text-gray-600">{exam.description}</div>
+                  <div className="text-sm text-gray-600">{exam.fullName}</div>
                 </button>
               ))}
             </div>
