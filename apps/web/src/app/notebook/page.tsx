@@ -29,7 +29,7 @@ export default function NotebookPage() {
   // 태그별 그룹화
   const tagGroups = new Map<string, typeof items>();
   items.forEach((item) => {
-    item.question.tags?.forEach((tag: string) => {
+    item.question.tags?.forEach((tag) => {
       if (!tagGroups.has(tag)) {
         tagGroups.set(tag, []);
       }

@@ -51,14 +51,14 @@ export default function PracticeResultPage() {
       )
     : 0;
 
-  const config = session.configJson as any;
+  const config = session.configJson;
 
   // 태그별 정답률 계산
   const tagStats = new Map<string, { correct: number; total: number }>();
   items.forEach((item) => {
     const question = item.question;
     if (question?.tags) {
-      question.tags.forEach((tag: string) => {
+      question.tags.forEach((tag) => {
         if (!tagStats.has(tag)) {
           tagStats.set(tag, { correct: 0, total: 0 });
         }
@@ -153,9 +153,11 @@ export default function PracticeResultPage() {
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link href="/notebook">오답노트에서 복습하기</Link>
-            </Button>
+            <Link href="/notebook">
+              <Button variant="outline" className="w-full mt-4">
+                오답노트에서 복습하기
+              </Button>
+            </Link>
           </Card>
         )}
 
@@ -163,7 +165,7 @@ export default function PracticeResultPage() {
         <Card variant="elevated" className="mb-6 shadow-xl">
           <h2 className="text-xl font-semibold mb-4">문제별 결과</h2>
           <div className="space-y-2">
-            {items.map((item, index) => {
+            {items.map((item, index: number) => {
               const question = item.question;
               const selectedChoice = question?.choices?.find((c) => c.id === item.selectedChoiceId);
               const correctChoice = question?.choices?.find((c) => c.isCorrect);

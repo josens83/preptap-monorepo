@@ -12,10 +12,16 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "db:push": "turbo run db:push",
-    "db:migrate": "turbo run db:migrate",
-    "db:seed": "turbo run db:seed",
-    "db:studio": "cd packages/db && pnpm db:studio"
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "db:generate": "cd packages/db && pnpm prisma generate",
+    "db:push": "cd packages/db && pnpm prisma db push",
+    "db:migrate": "cd packages/db && pnpm db:migrate",
+    "db:seed": "cd packages/db && pnpm db:seed",
+    "db:studio": "cd packages/db && pnpm db:studio",
+    "db:reset": "cd packages/db && pnpm db:reset",
+    "db:setup": "pnpm db:generate && pnpm db:push && pnpm db:seed",
+    "setup": "pnpm install && pnpm db:setup",
+    "type-check": "turbo run type-check"
   },
   "devDependencies": {
     "@turbo/gen": "^1.11.2",

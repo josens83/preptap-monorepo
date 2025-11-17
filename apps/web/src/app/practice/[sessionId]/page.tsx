@@ -205,7 +205,7 @@ export default function PracticeSessionPage() {
 
           {/* Answer Choices */}
           <div className="space-y-3">
-            {choices.map((choice, index) => (
+            {choices.map((choice, index: number) => (
               <button
                 key={choice.id}
                 onClick={() => handleAnswerSelect(choice.id)}

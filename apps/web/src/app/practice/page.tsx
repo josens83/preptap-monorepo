@@ -40,7 +40,7 @@ export default function PracticePage() {
           ) : sessions && sessions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {sessions.map((session) => {
-                const config = session.configJson as any;
+                const config = session.configJson;
                 const totalItems = session._count?.items || 0;
                 const correctItems = session.items?.filter((item) => item.isCorrect).length || 0;
                 const accuracy = totalItems > 0 ? Math.round((correctItems / totalItems) * 100) : 0;
