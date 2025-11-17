@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@preptap/db";
 import { compare } from "bcryptjs";
 import { env } from "./env";
@@ -16,6 +17,11 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/error",
   },
   providers: [
+    GoogleProvider({
+      clientId: env.GOOGLE_CLIENT_ID || "",
+      clientSecret: env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -50,7 +56,6 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    // Add OAuth providers here (Google, GitHub, etc.)
   ],
   callbacks: {
     async jwt({ token, user }) {
