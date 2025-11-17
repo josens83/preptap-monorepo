@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { stripe, STRIPE_PLANS } from "@/lib/stripe";
+import { stripe, SUBSCRIPTION_PLANS, PlanId, createCheckoutSession, createBillingPortalSession } from "@/lib/stripe";
 import { env } from "@/lib/env";
 
 export const paymentsRouter = createTRPCRouter({
@@ -11,7 +11,7 @@ export const paymentsRouter = createTRPCRouter({
   createCheckoutSession: protectedProcedure
     .input(
       z.object({
-        plan: z.enum(["MONTHLY", "YEARLY"]),
+        plan: z.enum(["BASIC", "PRO", "PREMIUM"]),
         successUrl: z.string().optional(),
         cancelUrl: z.string().optional(),
       })
@@ -22,106 +22,26 @@ export const paymentsRouter = createTRPCRouter({
         include: { profile: true },
       });
 
-      if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND" });
+      if (!user || !user.email) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "사용자를 찾을 수 없습니다." });
       }
 
-      const planConfig = STRIPE_PLANS[input.plan];
+      const planConfig = SUBSCRIPTION_PLANS[input.plan];
 
-      const session = await stripe.checkout.sessions.create({
-        customer_email: user.email,
-        client_reference_id: user.id,
-        payment_method_types: ["card"],
-        mode: "subscription",
-        line_items: [
-          {
-            price: planConfig.priceId,
-            quantity: 1,
-          },
-        ],
-        success_url: input.successUrl || `${env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
-        cancel_url: input.cancelUrl || `${env.NEXT_PUBLIC_APP_URL}/pricing`,
-        metadata: {
-          userId: user.id,
-          plan: input.plan,
-        },
-        subscription_data: {
-          metadata: {
-            userId: user.id,
-          },
-        },
-      });
-
-      return {
-        sessionId: session.id,
-        url: session.url,
-      };
-    }),
-
-  /**
-   * Create checkout session for course purchase
-   */
-  createCourseCheckout: protectedProcedure
-    .input(
-      z.object({
-        courseId: z.string(),
-        successUrl: z.string().optional(),
-        cancelUrl: z.string().optional(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const course = await ctx.prisma.course.findUnique({
-        where: { id: input.courseId },
-      });
-
-      if (!course || !course.isPublished) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "코스를 찾을 수 없습니다." });
+      if (!planConfig.priceId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "유효하지 않은 플랜입니다." });
       }
 
-      // Check if already enrolled
-      const existingEnrollment = await ctx.prisma.enrollment.findUnique({
-        where: {
-          userId_courseId: {
-            userId: ctx.session.user.id,
-            courseId: input.courseId,
-          },
-        },
-      });
+      const successUrl = input.successUrl || `${env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`;
+      const cancelUrl = input.cancelUrl || `${env.NEXT_PUBLIC_APP_URL}/pricing`;
 
-      if (existingEnrollment) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "이미 구매한 코스입니다.",
-        });
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        customer_email: ctx.session.user.email,
-        client_reference_id: ctx.session.user.id,
-        payment_method_types: ["card"],
-        mode: "payment",
-        line_items: [
-          {
-            price_data: {
-              currency: "krw",
-              product_data: {
-                name: course.title,
-                description: course.description || undefined,
-              },
-              unit_amount: course.price,
-            },
-            quantity: 1,
-          },
-        ],
-        success_url:
-          input.successUrl || `${env.NEXT_PUBLIC_APP_URL}/courses/${course.slug}?success=true`,
-        cancel_url: input.cancelUrl || `${env.NEXT_PUBLIC_APP_URL}/courses/${course.slug}`,
-        metadata: {
-          userId: ctx.session.user.id,
-          courseId: course.id,
-          type: "course_purchase",
-        },
-      });
+      const session = await createCheckoutSession(
+        user.id,
+        planConfig.priceId,
+        input.plan,
+        successUrl,
+        cancelUrl
+      );
 
       return {
         sessionId: session.id,
@@ -139,31 +59,29 @@ export const paymentsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Get user's Stripe customer ID from subscription
+      // Get user's subscription
       const subscription = await ctx.prisma.subscription.findFirst({
         where: {
           userId: ctx.session.user.id,
-          provider: "STRIPE",
         },
         orderBy: {
           createdAt: "desc",
         },
       });
 
-      if (!subscription || !subscription.providerId) {
+      if (!subscription || !subscription.stripeCustomerId) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "구독 정보를 찾을 수 없습니다.",
+          message: "구독 정보를 찾을 수 없습니다. 먼저 구독을 진행해주세요.",
         });
       }
 
-      // Get customer ID from Stripe subscription
-      const stripeSubscription = await stripe.subscriptions.retrieve(subscription.providerId);
+      const returnUrl = input.returnUrl || `${env.NEXT_PUBLIC_APP_URL}/settings`;
 
-      const session = await stripe.billingPortal.sessions.create({
-        customer: stripeSubscription.customer as string,
-        return_url: input.returnUrl || `${env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
-      });
+      const session = await createBillingPortalSession(
+        subscription.stripeCustomerId,
+        returnUrl
+      );
 
       return {
         url: session.url,
@@ -177,7 +95,6 @@ export const paymentsRouter = createTRPCRouter({
     const subscription = await ctx.prisma.subscription.findFirst({
       where: {
         userId: ctx.session.user.id,
-        status: "ACTIVE",
       },
       orderBy: {
         createdAt: "desc",
@@ -188,21 +105,118 @@ export const paymentsRouter = createTRPCRouter({
   }),
 
   /**
-   * Get user's enrolled courses
+   * Get user's subscription with plan details
    */
-  getEnrollments: protectedProcedure.query(async ({ ctx }) => {
-    const enrollments = await ctx.prisma.enrollment.findMany({
+  getSubscriptionWithDetails: protectedProcedure.query(async ({ ctx }) => {
+    const subscription = await ctx.prisma.subscription.findFirst({
       where: {
         userId: ctx.session.user.id,
-      },
-      include: {
-        course: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return enrollments;
+    if (!subscription) {
+      return {
+        subscription: null,
+        plan: SUBSCRIPTION_PLANS.FREE,
+        isActive: false,
+      };
+    }
+
+    const planId = (subscription.plan || 'FREE') as PlanId;
+    const plan = SUBSCRIPTION_PLANS[planId] || SUBSCRIPTION_PLANS.FREE;
+    const isActive = subscription.status === 'ACTIVE';
+
+    return {
+      subscription,
+      plan,
+      isActive,
+    };
+  }),
+
+  /**
+   * Cancel subscription
+   */
+  cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+    const subscription = await ctx.prisma.subscription.findFirst({
+      where: {
+        userId: ctx.session.user.id,
+        status: "ACTIVE",
+      },
+    });
+
+    if (!subscription || !subscription.stripeSubscriptionId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "활성 구독을 찾을 수 없습니다.",
+      });
+    }
+
+    // Cancel at period end in Stripe
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    // Update in database
+    await ctx.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        cancelAtPeriodEnd: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: "구독이 취소되었습니다. 현재 기간이 끝날 때까지 서비스를 이용하실 수 있습니다.",
+    };
+  }),
+
+  /**
+   * Reactivate subscription
+   */
+  reactivateSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+    const subscription = await ctx.prisma.subscription.findFirst({
+      where: {
+        userId: ctx.session.user.id,
+        cancelAtPeriodEnd: true,
+      },
+    });
+
+    if (!subscription || !subscription.stripeSubscriptionId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "취소된 구독을 찾을 수 없습니다.",
+      });
+    }
+
+    // Reactivate in Stripe
+    await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+
+    // Update in database
+    await ctx.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        cancelAtPeriodEnd: false,
+      },
+    });
+
+    return {
+      success: true,
+      message: "구독이 재활성화되었습니다.",
+    };
+  }),
+
+  /**
+   * Get available plans
+   */
+  getAvailablePlans: protectedProcedure.query(async () => {
+    return Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => ({
+      id,
+      ...plan,
+    }));
   }),
 });

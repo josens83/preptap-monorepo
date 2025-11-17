@@ -17,7 +17,7 @@ export default function PricingPage() {
     },
   });
 
-  const handleSubscribe = (plan: "MONTHLY" | "YEARLY") => {
+  const handleSubscribe = (plan: "BASIC" | "PRO" | "PREMIUM") => {
     if (!session) {
       router.push("/auth/signup");
       return;
@@ -51,11 +51,11 @@ export default function PricingPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {/* Free */}
           <Card>
             <CardHeader>
-              <CardTitle>Free</CardTitle>
+              <CardTitle>무료</CardTitle>
               <div className="text-3xl font-bold mt-4">₩0</div>
               <p className="text-gray-600">영원히 무료</p>
             </CardHeader>
@@ -63,15 +63,15 @@ export default function PricingPage() {
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
-                  <span>진단 평가 1회</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-600 mr-2">✓</span>
-                  <span>하루 10문항</span>
+                  <span>일 5문제 풀이</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
                   <span>기본 리포트</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>오답노트</span>
                 </li>
               </ul>
               <Link href="/auth/signup">
@@ -82,14 +82,50 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          {/* Pro Monthly */}
+          {/* Basic */}
+          <Card>
+            <CardHeader>
+              <CardTitle>베이직</CardTitle>
+              <div className="text-3xl font-bold mt-4">₩9,900</div>
+              <p className="text-gray-600">월 구독</p>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>일 30문제 풀이</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>상세 리포트</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>오답노트 무제한</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>약점 분석</span>
+                </li>
+              </ul>
+              <Button
+                className="w-full"
+                onClick={() => handleSubscribe("BASIC")}
+                isLoading={createCheckoutMutation.isPending}
+              >
+                구독하기
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Pro */}
           <Card className="border-2 border-primary-500">
             <div className="absolute top-0 right-0 m-4">
               <Badge variant="info">인기</Badge>
             </div>
             <CardHeader>
-              <CardTitle>Pro</CardTitle>
-              <div className="text-3xl font-bold mt-4">₩29,000</div>
+              <CardTitle>프로</CardTitle>
+              <div className="text-3xl font-bold mt-4">₩19,900</div>
               <p className="text-gray-600">월 구독</p>
             </CardHeader>
             <CardContent>
@@ -100,28 +136,24 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
+                  <span>고급 리포트</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>AI 약점 보완</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
                   <span>적응형 학습</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
-                  <span>오답노트 & 복습</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-600 mr-2">✓</span>
-                  <span>모의고사 무제한</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-600 mr-2">✓</span>
-                  <span>상세 리포트</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-green-600 mr-2">✓</span>
-                  <span>스터디 그룹 참여</span>
+                  <span>스터디 그룹</span>
                 </li>
               </ul>
               <Button
                 className="w-full"
-                onClick={() => handleSubscribe("MONTHLY")}
+                onClick={() => handleSubscribe("PRO")}
                 isLoading={createCheckoutMutation.isPending}
               >
                 구독하기
@@ -129,31 +161,39 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          {/* Pro Yearly */}
+          {/* Premium */}
           <Card>
             <div className="absolute top-0 right-0 m-4">
-              <Badge variant="success">2개월 무료</Badge>
+              <Badge variant="success">최고급</Badge>
             </div>
             <CardHeader>
-              <CardTitle>Pro 연간</CardTitle>
-              <div className="text-3xl font-bold mt-4">₩290,000</div>
-              <p className="text-gray-600">연 구독 (17% 할인)</p>
+              <CardTitle>프리미엄</CardTitle>
+              <div className="text-3xl font-bold mt-4">₩39,900</div>
+              <p className="text-gray-600">월 구독</p>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
-                  <span>Pro 모든 기능</span>
+                  <span>Pro의 모든 기능</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">✓</span>
-                  <span>월 ₩24,167 (17% 절약)</span>
+                  <span>1:1 멘토링 (월 2회)</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>모의고사 무제한</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-600 mr-2">✓</span>
+                  <span>우선 지원</span>
                 </li>
               </ul>
               <Button
                 variant="secondary"
                 className="w-full"
-                onClick={() => handleSubscribe("YEARLY")}
+                onClick={() => handleSubscribe("PREMIUM")}
                 isLoading={createCheckoutMutation.isPending}
               >
                 구독하기
