@@ -5,20 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader, CardTitle, CardContent, Input } from "@preptap/ui";
 import { trpc } from "@/lib/trpc/client";
-
-const EXAM_TYPES = [
-  { id: "SUNEUNG", name: "수능" },
-  { id: "TOEIC", name: "TOEIC" },
-  { id: "TEPS", name: "TEPS" },
-  { id: "TOEFL", name: "TOEFL" },
-  { id: "IELTS", name: "IELTS" },
-];
-
-const SCHOOL_LEVELS = [
-  { id: "HIGH", name: "고등학생" },
-  { id: "UNIVERSITY", name: "대학생" },
-  { id: "GRADUATE", name: "직장인/일반" },
-];
+import { EXAM_TYPES, SCHOOL_LEVELS } from "@/lib/constants";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();

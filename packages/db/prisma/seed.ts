@@ -64,6 +64,7 @@ async function main() {
   await seedToeicQuestions();
   await seedTepsQuestions();
   await seedToeflQuestions();
+  await seedIeltsQuestions();
 
   console.log("✓ Created sample questions");
 
@@ -85,7 +86,16 @@ async function main() {
 
   console.log("✓ Created sample course");
 
+  // Create sample practice sessions and results
+  await createSamplePracticeData(student.id);
+
+  console.log("✓ Created sample practice sessions");
+
   console.log("✅ Seed completed!");
+  console.log("\n📝 Demo accounts:");
+  console.log("   Student: student@preptap.com / password123");
+  console.log("   Teacher: teacher@preptap.com / password123");
+  console.log("   Admin: admin@preptap.com / password123");
 }
 
 async function seedSuneungQuestions() {
@@ -463,6 +473,283 @@ async function seedToeflQuestions() {
   for (const q of questions) {
     await prisma.question.create({ data: q });
   }
+}
+
+async function seedIeltsQuestions() {
+  const questions = [
+    {
+      examType: ExamType.IELTS,
+      part: "Reading",
+      type: QuestionType.READING,
+      stem: "Which of the following best describes the author's attitude?",
+      passage: `The preservation of biodiversity is crucial for maintaining ecosystem balance. Each species, no matter how small, plays a vital role in the intricate web of life. When we lose a species, we risk destabilizing entire ecosystems, which can have far-reaching consequences for human survival.`,
+      difficulty: 0.65,
+      tags: ["reading", "attitude", "environment", "ielts"],
+      choices: {
+        create: [
+          { label: "A", text: "Indifferent", isCorrect: false },
+          { label: "B", text: "Concerned and urgent", isCorrect: true },
+          { label: "C", text: "Optimistic", isCorrect: false },
+          { label: "D", text: "Neutral", isCorrect: false },
+        ],
+      },
+      explanation: {
+        create: {
+          text: "저자는 생물 다양성 보존의 중요성을 강조하며 종의 멸종이 가져올 위험에 대해 우려하는 태도를 보입니다.",
+        },
+      },
+    },
+    {
+      examType: ExamType.IELTS,
+      part: "Writing Task 2",
+      type: QuestionType.MCQ,
+      stem: "Which thesis statement is most appropriate for an essay about online education?",
+      difficulty: 0.7,
+      tags: ["writing", "thesis", "education", "ielts"],
+      choices: {
+        create: [
+          {
+            label: "A",
+            text: "Online education is good.",
+            isCorrect: false,
+          },
+          {
+            label: "B",
+            text: "While online education offers flexibility and accessibility, it also presents challenges in maintaining student engagement and ensuring quality instruction.",
+            isCorrect: true,
+          },
+          {
+            label: "C",
+            text: "Everyone likes online classes.",
+            isCorrect: false,
+          },
+          {
+            label: "D",
+            text: "Schools should use computers.",
+            isCorrect: false,
+          },
+        ],
+      },
+      explanation: {
+        create: {
+          text: "효과적인 논제문은 주제에 대한 명확한 입장과 논의할 주요 포인트를 제시해야 합니다. B가 가장 적절합니다.",
+        },
+      },
+    },
+    {
+      examType: ExamType.IELTS,
+      part: "Speaking",
+      type: QuestionType.MCQ,
+      stem: "Which response best demonstrates advanced vocabulary and fluency?",
+      difficulty: 0.6,
+      tags: ["speaking", "vocabulary", "fluency", "ielts"],
+      choices: {
+        create: [
+          {
+            label: "A",
+            text: "I like movies. They are fun.",
+            isCorrect: false,
+          },
+          {
+            label: "B",
+            text: "I'm particularly drawn to thought-provoking films that explore complex social issues and challenge conventional perspectives.",
+            isCorrect: true,
+          },
+          {
+            label: "C",
+            text: "Movies good.",
+            isCorrect: false,
+          },
+          {
+            label: "D",
+            text: "I watch many movies every day.",
+            isCorrect: false,
+          },
+        ],
+      },
+      explanation: {
+        create: {
+          text: "B는 고급 어휘('particularly drawn to', 'thought-provoking', 'conventional perspectives')와 복잡한 문장 구조를 사용하여 유창함을 보여줍니다.",
+        },
+      },
+    },
+  ];
+
+  for (const q of questions) {
+    await prisma.question.create({ data: q });
+  }
+}
+
+async function createSamplePracticeData(userId: string) {
+  // Get some questions for practice sessions
+  const questions = await prisma.question.findMany({
+    take: 10,
+    include: { choices: true },
+  });
+
+  if (questions.length === 0) {
+    console.log("No questions found for practice sessions");
+    return;
+  }
+
+  // Create 3 completed practice sessions with varying performance
+  const sessions = [
+    {
+      score: 85,
+      correctCount: 7,
+      totalQuestions: 10,
+      studyTimeMinutes: 15,
+      daysAgo: 7,
+    },
+    {
+      score: 70,
+      correctCount: 7,
+      totalQuestions: 10,
+      studyTimeMinutes: 12,
+      daysAgo: 3,
+    },
+    {
+      score: 90,
+      correctCount: 9,
+      totalQuestions: 10,
+      studyTimeMinutes: 18,
+      daysAgo: 1,
+    },
+  ];
+
+  for (const sessionData of sessions) {
+    const startedAt = new Date();
+    startedAt.setDate(startedAt.getDate() - sessionData.daysAgo);
+    const finishedAt = new Date(startedAt);
+    finishedAt.setMinutes(finishedAt.getMinutes() + sessionData.studyTimeMinutes);
+
+    const session = await prisma.practiceSession.create({
+      data: {
+        userId,
+        mode: "ADAPTIVE",
+        startedAt,
+        finishedAt,
+        score: sessionData.score,
+        configJson: {
+          examType: questions[0].examType,
+          questionCount: sessionData.totalQuestions,
+        },
+      },
+    });
+
+    // Create session items
+    for (let i = 0; i < sessionData.totalQuestions; i++) {
+      const question = questions[i % questions.length];
+      const choices = question.choices;
+      const correctChoice = choices.find((c) => c.isCorrect);
+      const wrongChoice = choices.find((c) => !c.isCorrect);
+
+      // Determine if this answer is correct based on target correctCount
+      const isCorrect = i < sessionData.correctCount;
+      const selectedChoice = isCorrect ? correctChoice : wrongChoice;
+
+      await prisma.sessionItem.create({
+        data: {
+          sessionId: session.id,
+          questionId: question.id,
+          orderIndex: i,
+          userAnswer: selectedChoice?.label || "A",
+          selectedChoiceId: selectedChoice?.id,
+          isCorrect,
+          elapsedMs: Math.floor(Math.random() * 60000) + 30000, // 30s - 90s
+        },
+      });
+
+      // Add to spaced repetition if wrong
+      if (!isCorrect) {
+        await prisma.spacedItem.upsert({
+          where: {
+            userId_questionId: {
+              userId,
+              questionId: question.id,
+            },
+          },
+          create: {
+            userId,
+            questionId: question.id,
+            repetitions: 0,
+            easeFactor: 2.5,
+            interval: 1,
+            nextReviewAt: new Date(),
+          },
+          update: {},
+        });
+      }
+    }
+
+    // Create weaknesses based on wrong answers
+    const wrongTags = new Set<string>();
+    const wrongItems = await prisma.sessionItem.findMany({
+      where: {
+        sessionId: session.id,
+        isCorrect: false,
+      },
+      include: {
+        question: true,
+      },
+    });
+
+    wrongItems.forEach((item) => {
+      item.question.tags.forEach((tag) => wrongTags.add(tag as string));
+    });
+
+    // Update weakness scores
+    for (const tag of wrongTags) {
+      const existingWeakness = await prisma.weakness.findUnique({
+        where: {
+          userId_tag: {
+            userId,
+            tag,
+          },
+        },
+      });
+
+      if (existingWeakness) {
+        await prisma.weakness.update({
+          where: { userId_tag: { userId, tag } },
+          data: {
+            totalAttempts: { increment: 1 },
+            score: Math.max(0, existingWeakness.score - 0.1),
+          },
+        });
+      } else {
+        await prisma.weakness.create({
+          data: {
+            userId,
+            tag,
+            score: 0.5,
+            totalAttempts: 1,
+            correctCount: 0,
+          },
+        });
+      }
+    }
+  }
+
+  // Create one in-progress session
+  await prisma.practiceSession.create({
+    data: {
+      userId,
+      mode: "TIMED",
+      startedAt: new Date(),
+      configJson: {
+        examType: questions[0].examType,
+        questionCount: 20,
+        timeLimit: 30,
+      },
+      items: {
+        create: questions.slice(0, 5).map((q, idx) => ({
+          questionId: q.id,
+          orderIndex: idx,
+        })),
+      },
+    },
+  });
 }
 
 main()
