@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { sendContactConfirmationEmail } from "@/lib/email";
 
 export const contactRouter = createTRPCRouter({
   /**
@@ -28,12 +29,12 @@ export const contactRouter = createTRPCRouter({
           },
         });
 
-        // TODO: Send email notification to support team
-        // await sendEmail({
-        //   to: process.env.SUPPORT_EMAIL || "support@preptap.com",
-        //   subject: `[문의] ${input.subject}`,
-        //   text: `이름: ${input.name}\n이메일: ${input.email}\n\n${input.message}`,
-        // });
+        // Send confirmation email to user (non-blocking)
+        sendContactConfirmationEmail(input.email, input.name, input.subject).catch(
+          (err) => {
+            console.error("문의 확인 이메일 전송 실패:", err);
+          }
+        );
 
         return {
           success: true,

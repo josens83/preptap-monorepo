@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { UserRole } from "@preptap/db";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export const authRouter = createTRPCRouter({
   register: publicProcedure
@@ -50,6 +51,11 @@ export const authRouter = createTRPCRouter({
           eventType: "USER_SIGNUP",
           payloadJson: { email: user.email },
         },
+      });
+
+      // Send welcome email (non-blocking)
+      sendWelcomeEmail(user.email, input.displayName || "회원").catch((err) => {
+        console.error("환영 이메일 전송 실패:", err);
       });
 
       return {
