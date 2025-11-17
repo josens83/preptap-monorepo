@@ -7,30 +7,48 @@
 ### 필수 요구사항
 
 - Node.js 18+
-- pnpm 8+
-- PostgreSQL 14+
+- pnpm 8.15.0+
+- SQLite (개발용, 자동 설치됨)
+- PostgreSQL 14+ (프로덕션 권장)
 
 ### 설치
 
 ```bash
-# 의존성 설치
+# 1. 의존성 설치
 pnpm install
 
-# 환경 변수 설정
-cp .env.example .env
-# .env 파일을 열어 필요한 값 입력
+# 2. 환경 변수 설정
+# 루트 디렉토리에 .env 파일 생성
+cat > .env << 'EOF'
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="$(openssl rand -base64 32)"
+NEXTAUTH_URL="http://localhost:3000"
+PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+EOF
 
-# 데이터베이스 설정
+# 3. Prisma Client 생성
 cd packages/db
-pnpm db:push
+pnpm prisma generate
+
+# 4. 데이터베이스 초기화 & 시드
+pnpm prisma db push
 pnpm db:seed
 
-# 개발 서버 시작
+# 5. 개발 서버 시작
 cd ../..
 pnpm dev
 ```
 
 웹 앱이 http://localhost:3000 에서 실행됩니다.
+
+### 📝 테스트 계정
+
+Seed 스크립트가 자동으로 생성하는 계정:
+
+- 학생: `student@preptap.com` / `password123`
+- 선생님: `teacher@preptap.com` / `password123`
+- 관리자: `admin@preptap.com` / `password123`
 
 ## 📁 프로젝트 구조
 
@@ -66,24 +84,43 @@ preptap-monorepo/
 
 ## 🔑 환경 변수 설정
 
-`.env` 파일에 다음 값을 설정하세요:
+### 개발 환경 (SQLite)
+
+`.env` 파일:
 
 ```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/preptap_db"
+# Database (SQLite for development)
+DATABASE_URL="file:./dev.db"
+
+# Prisma (오프라인 환경)
+PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-min-32-chars"
-
-# Stripe (테스트 모드)
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
-NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY="price_..."
+NEXTAUTH_SECRET="Ju7cq5lfJLPqrweH1u4yHSMY8sVzRwjjGwPmQ0TekZA="  # openssl rand -base64 32
 
 # App
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+### 프로덕션 환경 (PostgreSQL)
+
+```env
+# Database (PostgreSQL for production)
+DATABASE_URL="postgresql://user:password@localhost:5432/preptap_db"
+
+# NextAuth
+NEXTAUTH_URL="https://yourdomain.com"
+NEXTAUTH_SECRET="your-production-secret-key-min-32-chars"
+
+# Stripe (프로덕션 모드)
+STRIPE_SECRET_KEY="sk_live_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..."
+NEXT_PUBLIC_STRIPE_PRICE_ID_MONTHLY="price_..."
+
+# App
+NEXT_PUBLIC_APP_URL="https://yourdomain.com"
 ```
 
 ### Stripe 설정
