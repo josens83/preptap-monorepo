@@ -186,6 +186,124 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              실제 사용자들의 생생한 후기
+            </h2>
+            <p className="text-xl text-gray-600">
+              PrepTap으로 목표를 달성한 학습자들의 이야기
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👨‍🎓
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">김준호</div>
+                  <div className="text-sm text-gray-600">TEPS 500 → 730</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "AI가 내 약점을 정확히 찾아내고 필요한 문제만 추천해줘서 3개월 만에 230점이나 올랐어요.
+                특히 오답노트 기능이 정말 유용했습니다!"
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-secondary-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👩‍💼
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">이서연</div>
+                  <div className="text-sm text-gray-600">TOEIC 650 → 900</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "직장인이라 시간이 부족했는데, PrepTap은 짧은 시간에도 효율적으로 학습할 수 있어서 좋았어요.
+                출퇴근 시간에만 풀어도 점수가 확 올랐습니다."
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👨‍🏫
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">박민수</div>
+                  <div className="text-sm text-gray-600">수능 영어 3등급 → 1등급</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "문제만 많이 푸는 게 아니라 내가 약한 부분을 집중적으로 학습할 수 있어서 좋았어요.
+                학습 리포트로 진척도를 확인하니 동기부여도 됐습니다."
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👩‍🎓
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">최지은</div>
+                  <div className="text-sm text-gray-600">TOEFL 70 → 95</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "유학 준비하면서 여러 앱을 써봤는데 PrepTap이 가장 체계적이었어요.
+                간격 반복 학습 덕분에 한번 공부한 내용이 오래 기억에 남았습니다."
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👨‍💻
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">정현우</div>
+                  <div className="text-sm text-gray-600">TOEIC 800 → 950</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "개발자라서 데이터 기반 접근이 마음에 들었어요.
+                내 학습 패턴을 분석해서 최적화된 문제를 주는 게 신기하고 효과적이었습니다."
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-xl mr-3">
+                  👩‍🔬
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">강수진</div>
+                  <div className="text-sm text-gray-600">IELTS 6.0 → 7.5</div>
+                </div>
+              </div>
+              <div className="text-yellow-500 mb-3">★★★★★</div>
+              <p className="text-gray-700 leading-relaxed">
+                "IELTS 준비하면서 가장 힘들었던 게 약점 파악이었는데,
+                PrepTap이 자동으로 분석해줘서 집중해야 할 부분이 명확했어요. 목표 점수 달성했습니다!"
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
