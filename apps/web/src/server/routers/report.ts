@@ -5,94 +5,117 @@ export const reportRouter = createTRPCRouter({
   /**
    * Get overall performance overview
    */
-  getOverview: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
+  getOverview: protectedProcedure
+    .input(
+      z.object({
+        days: z.number().optional().default(7),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
 
-    // Total sessions
-    const totalSessions = await ctx.prisma.practiceSession.count({
-      where: { userId, finishedAt: { not: null } },
-    });
+      // Calculate date range
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - input.days);
 
-    // Total questions answered
-    const totalQuestions = await ctx.prisma.sessionItem.count({
-      where: {
-        session: { userId },
-        isCorrect: { not: null },
-      },
-    });
+      // Total sessions in date range
+      const totalSessions = await ctx.prisma.practiceSession.count({
+        where: {
+          userId,
+          finishedAt: { not: null, gte: startDate }
+        },
+      });
 
-    // Correct answers
-    const correctAnswers = await ctx.prisma.sessionItem.count({
-      where: {
-        session: { userId },
-        isCorrect: true,
-      },
-    });
+      // Total questions answered in date range
+      const totalQuestions = await ctx.prisma.sessionItem.count({
+        where: {
+          session: {
+            userId,
+            finishedAt: { not: null, gte: startDate }
+          },
+          isCorrect: { not: null },
+        },
+      });
 
-    // Average score
-    const sessions = await ctx.prisma.practiceSession.findMany({
-      where: { userId, finishedAt: { not: null }, score: { not: null } },
-      select: { score: true },
-    });
+      // Correct answers in date range
+      const correctAnswers = await ctx.prisma.sessionItem.count({
+        where: {
+          session: {
+            userId,
+            finishedAt: { not: null, gte: startDate }
+          },
+          isCorrect: true,
+        },
+      });
+
+      // Average score in date range
+      const sessions = await ctx.prisma.practiceSession.findMany({
+        where: {
+          userId,
+          finishedAt: { not: null, gte: startDate },
+          score: { not: null }
+        },
+        select: { score: true },
+      });
 
     const avgScore =
       sessions.length > 0
         ? sessions.reduce((sum, s) => sum + (s.score ?? 0), 0) / sessions.length
         : 0;
 
-    // Study time (rough estimate based on sessions)
-    const totalStudyTimeMs = await ctx.prisma.sessionItem.aggregate({
-      where: {
-        session: { userId },
-        elapsedMs: { not: null },
-      },
-      _sum: {
-        elapsedMs: true,
-      },
-    });
+      // Study time in date range
+      const totalStudyTimeMs = await ctx.prisma.sessionItem.aggregate({
+        where: {
+          session: {
+            userId,
+            finishedAt: { not: null, gte: startDate }
+          },
+          elapsedMs: { not: null },
+        },
+        _sum: {
+          elapsedMs: true,
+        },
+      });
 
-    // Weaknesses
-    const weaknesses = await ctx.prisma.weakness.findMany({
-      where: { userId },
-      orderBy: { score: "asc" },
-      take: 10,
-    });
+      // Weaknesses
+      const weaknesses = await ctx.prisma.weakness.findMany({
+        where: { userId },
+        orderBy: { score: "asc" },
+        take: 10,
+      });
 
-    // Recent sessions trend (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // Recent sessions trend
+      const recentSessions = await ctx.prisma.practiceSession.findMany({
+        where: {
+          userId,
+          finishedAt: { not: null, gte: startDate },
+          score: { not: null },
+        },
+        orderBy: { finishedAt: "asc" },
+        select: {
+          finishedAt: true,
+          score: true,
+        },
+      });
 
-    const recentSessions = await ctx.prisma.practiceSession.findMany({
-      where: {
-        userId,
-        finishedAt: { not: null, gte: sevenDaysAgo },
-        score: { not: null },
-      },
-      orderBy: { finishedAt: "asc" },
-      select: {
-        finishedAt: true,
-        score: true,
-      },
-    });
-
-    return {
-      totalSessions,
-      totalQuestions,
-      correctAnswers,
-      accuracy: totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0,
-      avgScore,
-      totalStudyTimeMs: totalStudyTimeMs._sum.elapsedMs || 0,
-      weaknesses: weaknesses.map((w) => ({
-        tag: w.tag,
-        score: w.score,
-        accuracy: w.totalAttempts > 0 ? (w.correctCount / w.totalAttempts) * 100 : 0,
-      })),
-      recentTrend: recentSessions.map((s) => ({
-        date: s.finishedAt,
-        score: s.score,
-      })),
-    };
-  }),
+      return {
+        stats: {
+          totalSessions,
+          totalQuestions,
+          averageAccuracy: totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0,
+          totalStudyMinutes: Math.floor((totalStudyTimeMs._sum.elapsedMs || 0) / 60000),
+        },
+        weaknesses: weaknesses.map((w) => ({
+          tag: w.tag,
+          score: w.score,
+          accuracy: w.totalAttempts > 0 ? (w.correctCount / w.totalAttempts) * 100 : 0,
+        })),
+        recentTrend: recentSessions.map((s) => ({
+          date: s.finishedAt,
+          score: s.score,
+        })),
+      };
+    }),
 
   /**
    * Get detailed weakness analysis for a specific tag
@@ -101,6 +124,7 @@ export const reportRouter = createTRPCRouter({
     .input(
       z.object({
         tag: z.string(),
+        limit: z.number().optional().default(20),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -147,7 +171,7 @@ export const reportRouter = createTRPCRouter({
         orderBy: {
           createdAt: "desc",
         },
-        take: 20,
+        take: input.limit,
       });
 
       return {

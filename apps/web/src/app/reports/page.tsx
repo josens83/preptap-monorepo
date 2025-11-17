@@ -10,10 +10,10 @@ export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("week");
 
   const { data: overview } = trpc.report.getOverview.useQuery({ days: timeRange === "week" ? 7 : timeRange === "month" ? 30 : 365 });
-  const { data: weaknesses } = trpc.report.getWeaknessDetail.useQuery({ limit: 10 });
   const { data: performance } = trpc.report.getPerformanceByExam.useQuery();
 
   const stats = overview?.stats || { totalSessions: 0, totalQuestions: 0, averageAccuracy: 0, totalStudyMinutes: 0 };
+  const weaknesses = overview?.weaknesses || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
