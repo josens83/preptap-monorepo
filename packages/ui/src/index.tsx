@@ -27,3 +27,18 @@ export type { SkeletonProps, SkeletonTextProps, SkeletonCardProps, SkeletonListP
 
 export { EmptyState, NoDataIcon, NoResultsIcon, NoSessionsIcon, NoNotebookIcon, NoSubscriptionIcon } from "./components/EmptyState";
 export type { EmptyStateProps } from "./components/EmptyState";
+
+export { GlassCard } from "./components/GlassCard";
+export type { GlassCardProps } from "./components/GlassCard";
+
+export { BentoGrid, BentoCard } from "./components/BentoGrid";
+export type { BentoGridProps, BentoCardProps } from "./components/BentoGrid";
+
+export { GradientBackground } from "./components/GradientBackground";
+export type { GradientBackgroundProps } from "./components/GradientBackground";
+
+export { Shimmer } from "./components/Shimmer";
+export type { ShimmerProps } from "./components/Shimmer";
+
+export { SpotlightCard } from "./components/SpotlightCard";
+export type { SpotlightCardProps } from "./components/SpotlightCard";
