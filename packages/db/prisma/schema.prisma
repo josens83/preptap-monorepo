@@ -135,6 +135,7 @@ model Subscription {
   stripeSubscriptionId   String? // Stripe subscription ID
   status                 SubscriptionStatus
   plan                   String? // FREE, BASIC, PRO, PREMIUM
+  planName               String? // Alias for compatibility
   priceId                String?
   currentPeriodStart     DateTime?
   currentPeriodEnd       DateTime?

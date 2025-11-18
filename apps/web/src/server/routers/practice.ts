@@ -364,7 +364,7 @@ export const practiceRouter = createTRPCRouter({
         createdAt: {
           gte: today,
         },
-        completedAt: {
+        finishedAt: {
           not: null,
         },
       },

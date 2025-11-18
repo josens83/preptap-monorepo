@@ -1,37 +1,48 @@
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { verifyWebhookSignature } from "@/lib/stripe";
+import { db } from "@preptap/db";
+import { logger } from "@/lib/logger";
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
-import { env } from "@/lib/env";
-import { prisma } from "@preptap/db";
-import { sendPaymentSuccessEmail } from "@/lib/email";
 
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get("stripe-signature");
+/**
+ * Stripe Webhook Handler
+ *
+ * Handles subscription lifecycle events:
+ * - checkout.session.completed
+ * - customer.subscription.created
+ * - customer.subscription.updated
+ * - customer.subscription.deleted
+ * - invoice.payment_succeeded
+ * - invoice.payment_failed
+ */
 
-  if (!signature) {
-    return NextResponse.json({ error: "No signature" }, { status: 400 });
-  }
-
-  let event: Stripe.Event;
-
+export async function POST(req: NextRequest) {
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      env.STRIPE_WEBHOOK_SECRET || "whsec_test"
-    );
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
+    const body = await req.text();
+    const signature = headers().get("stripe-signature");
 
-  try {
+    if (!signature) {
+      logger.error("Missing stripe-signature header");
+      return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+    }
+
+    // Verify webhook signature
+    let event: Stripe.Event;
+    try {
+      event = verifyWebhookSignature(body, signature);
+    } catch (err) {
+      logger.error("Webhook signature verification failed", { error: err });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
+    logger.info("Stripe webhook received", { type: event.type, id: event.id });
+
+    // Handle the event
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutCompleted(session);
+        await handleCheckoutSessionCompleted(session);
         break;
       }
 
@@ -50,89 +61,97 @@ export async function POST(req: Request) {
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentSucceeded(invoice);
+        await handlePaymentSucceeded(invoice);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentFailed(invoice);
+        await handlePaymentFailed(invoice);
         break;
       }
+
+      default:
+        logger.info(\`Unhandled webhook event: \${event.type}\`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook handler error:", error);
-    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
+    logger.error("Webhook handler error", { error });
+    return NextResponse.json(
+      { error: "Webhook handler failed" },
+      { status: 500 }
+    );
   }
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId;
-  if (!userId) return;
+/**
+ * Handle successful checkout session
+ */
+async function handleCheckoutSessionCompleted(
+  session: Stripe.Checkout.Session
+) {
+  const userId = session.metadata?.userId || session.client_reference_id;
+  const planId = session.metadata?.planId;
 
-  // Handle subscription checkout
-  if (session.mode === "subscription" && session.subscription) {
-    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  if (!userId) {
+    logger.error("Missing userId in checkout session", { sessionId: session.id });
+    return;
+  }
+
+  const customerId = session.customer as string;
+  const subscriptionId = session.subscription as string;
+
+  logger.info("Checkout session completed", {
+    userId,
+    planId,
+    customerId,
+    subscriptionId,
+  });
+
+  // Get or create subscription record
+  if (subscriptionId) {
+    // Fetch full subscription details from Stripe
+    const stripe = await import("@/lib/stripe").then((m) => m.stripe);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     await handleSubscriptionUpdate(subscription);
   }
 
-  // Handle course purchase
-  if (session.mode === "payment" && session.metadata?.type === "course_purchase") {
-    const courseId = session.metadata.courseId;
-    if (!courseId) return;
-
-    await prisma.enrollment.create({
-      data: {
-        userId,
-        courseId,
-        status: "ACTIVE",
-      },
-    });
-
-    await prisma.eventLog.create({
-      data: {
-        userId,
-        eventType: "COURSE_ENROLLED",
-        payloadJson: { courseId, sessionId: session.id },
-      },
-    });
-  }
-
-  // Record payment
-  await prisma.payment.create({
-    data: {
-      userId,
-      amount: session.amount_total || 0,
-      currency: session.currency?.toUpperCase() || "KRW",
-      provider: "STRIPE",
-      providerRef: session.id,
-      status: "SUCCEEDED",
-      metadata: session.metadata,
-    },
-  });
-
-  await prisma.eventLog.create({
+  // Log payment event
+  await db.eventLog.create({
     data: {
       userId,
       eventType: "PAYMENT_SUCCEEDED",
-      payloadJson: { sessionId: session.id, amount: session.amount_total },
+      payloadJson: {
+        sessionId: session.id,
+        customerId,
+        subscriptionId,
+        planId,
+      },
     },
   });
 }
 
+/**
+ * Handle subscription creation/update
+ */
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata?.userId;
-  const planId = subscription.metadata?.planId;
-  if (!userId) return;
+  const userId = subscription.metadata.userId;
+  const planId = subscription.metadata.planId || "BASIC";
+
+  if (!userId) {
+    logger.error("Missing userId in subscription metadata", {
+      subscriptionId: subscription.id,
+    });
+    return;
+  }
 
   const status = mapStripeStatus(subscription.status);
-  const isNewSubscription = subscription.status === "active" && !subscription.cancel_at_period_end;
 
-  const sub = await prisma.subscription.upsert({
+  // Upsert subscription in database
+  const dbSubscription = await db.subscription.upsert({
     where: {
-      providerId: subscription.id,
+      stripeSubscriptionId: subscription.id,
     },
     create: {
       userId,
@@ -141,7 +160,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       stripeCustomerId: subscription.customer as string,
       stripeSubscriptionId: subscription.id,
       status,
-      plan: planId || null,
+      plan: planId,
+      planName: planId,
       priceId: subscription.items.data[0]?.price.id,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -149,80 +169,224 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     },
     update: {
       status,
-      plan: planId || undefined,
+      plan: planId,
+      planName: planId,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
     },
   });
 
-  await prisma.eventLog.create({
-    data: {
-      userId,
-      eventType: status === "ACTIVE" ? "SUBSCRIPTION_CREATED" : "SUBSCRIPTION_UPDATED",
-      payloadJson: { subscriptionId: subscription.id, status, planId },
-    },
+  logger.info("Subscription updated", {
+    subscriptionId: dbSubscription.id,
+    userId,
+    status,
+    planId,
   });
 
-  // 신규 활성 구독 시 결제 성공 이메일 발송
-  if (isNewSubscription && planId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { profile: true },
-    });
-
-    if (user) {
-      const amount = subscription.items.data[0]?.price.unit_amount || 0;
-      await sendPaymentSuccessEmail(
-        user.email,
-        user.profile?.displayName || "회원",
+  // Log subscription event
+  await db.eventLog.create({
+    data: {
+      userId,
+      eventType: subscription.id
+        ? "SUBSCRIPTION_UPDATED"
+        : "SUBSCRIPTION_CREATED",
+      payloadJson: {
+        subscriptionId: subscription.id,
         planId,
-        amount / 100
-      ).catch((err) => {
-        console.error("결제 성공 이메일 발송 실패:", err);
-      });
-
-      console.log(`✅ 결제 성공 이메일 발송: ${user.email}, 플랜: ${planId}`);
-    }
-  }
+        status,
+      },
+    },
+  });
 }
 
+/**
+ * Handle subscription deletion/cancellation
+ */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata?.userId;
-  if (!userId) return;
+  const userId = subscription.metadata.userId;
 
-  await prisma.subscription.updateMany({
+  if (!userId) {
+    logger.error("Missing userId in subscription metadata", {
+      subscriptionId: subscription.id,
+    });
+    return;
+  }
+
+  // Update subscription status to CANCELED
+  await db.subscription.updateMany({
     where: {
-      providerId: subscription.id,
+      stripeSubscriptionId: subscription.id,
     },
     data: {
       status: "CANCELED",
+      cancelAtPeriodEnd: false,
+    },
+  });
+
+  logger.info("Subscription deleted", {
+    subscriptionId: subscription.id,
+    userId,
+  });
+
+  // Log event
+  await db.eventLog.create({
+    data: {
+      userId,
+      eventType: "SUBSCRIPTION_UPDATED",
+      payloadJson: {
+        subscriptionId: subscription.id,
+        status: "CANCELED",
+        reason: "deleted",
+      },
     },
   });
 }
 
-async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return;
+/**
+ * Handle successful payment
+ */
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  const subscriptionId = invoice.subscription as string | null;
+  const customerId = invoice.customer as string;
 
-  const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
-  await handleSubscriptionUpdate(subscription);
+  if (!subscriptionId) {
+    logger.info("Invoice payment succeeded (non-subscription)", {
+      invoiceId: invoice.id,
+    });
+    return;
+  }
+
+  // Get subscription to find userId
+  const subscription = await db.subscription.findFirst({
+    where: {
+      stripeSubscriptionId: subscriptionId,
+    },
+  });
+
+  if (!subscription) {
+    logger.error("Subscription not found for payment", { subscriptionId });
+    return;
+  }
+
+  // Record payment
+  await db.payment.create({
+    data: {
+      userId: subscription.userId,
+      amount: invoice.amount_paid,
+      currency: invoice.currency.toUpperCase(),
+      provider: "STRIPE",
+      providerRef: invoice.payment_intent as string,
+      status: "SUCCEEDED",
+      metadata: {
+        invoiceId: invoice.id,
+        subscriptionId,
+      },
+    },
+  });
+
+  logger.info("Payment succeeded", {
+    userId: subscription.userId,
+    amount: invoice.amount_paid,
+    invoiceId: invoice.id,
+  });
+
+  // Log event
+  await db.eventLog.create({
+    data: {
+      userId: subscription.userId,
+      eventType: "PAYMENT_SUCCEEDED",
+      payloadJson: {
+        invoiceId: invoice.id,
+        amount: invoice.amount_paid,
+        subscriptionId,
+      },
+    },
+  });
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return;
+/**
+ * Handle failed payment
+ */
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  const subscriptionId = invoice.subscription as string | null;
 
-  await prisma.subscription.updateMany({
+  if (!subscriptionId) {
+    logger.info("Invoice payment failed (non-subscription)", {
+      invoiceId: invoice.id,
+    });
+    return;
+  }
+
+  // Get subscription to find userId
+  const subscription = await db.subscription.findFirst({
     where: {
-      providerId: invoice.subscription as string,
+      stripeSubscriptionId: subscriptionId,
+    },
+  });
+
+  if (!subscription) {
+    logger.error("Subscription not found for failed payment", {
+      subscriptionId,
+    });
+    return;
+  }
+
+  // Update subscription status to PAST_DUE
+  await db.subscription.update({
+    where: {
+      id: subscription.id,
     },
     data: {
       status: "PAST_DUE",
     },
   });
+
+  // Record failed payment
+  await db.payment.create({
+    data: {
+      userId: subscription.userId,
+      amount: invoice.amount_due,
+      currency: invoice.currency.toUpperCase(),
+      provider: "STRIPE",
+      providerRef: invoice.payment_intent as string,
+      status: "FAILED",
+      metadata: {
+        invoiceId: invoice.id,
+        subscriptionId,
+        error: invoice.last_finalization_error?.message,
+      },
+    },
+  });
+
+  logger.error("Payment failed", {
+    userId: subscription.userId,
+    amount: invoice.amount_due,
+    invoiceId: invoice.id,
+  });
+
+  // Log event
+  await db.eventLog.create({
+    data: {
+      userId: subscription.userId,
+      eventType: "PAYMENT_SUCCEEDED",
+      payloadJson: {
+        invoiceId: invoice.id,
+        amount: invoice.amount_due,
+        subscriptionId,
+        status: "failed",
+      },
+    },
+  });
 }
 
-function mapStripeStatus(status: Stripe.Subscription.Status): "ACTIVE" | "CANCELED" | "PAST_DUE" | "TRIALING" | "INCOMPLETE" {
-  switch (status) {
+/**
+ * Map Stripe subscription status to our SubscriptionStatus enum
+ */
+function mapStripeStatus(
+  stripeStatus: Stripe.Subscription.Status
+): "ACTIVE" | "CANCELED" | "PAST_DUE" | "TRIALING" | "INCOMPLETE" {
+  switch (stripeStatus) {
     case "active":
       return "ACTIVE";
     case "canceled":
@@ -236,6 +400,6 @@ function mapStripeStatus(status: Stripe.Subscription.Status): "ACTIVE" | "CANCEL
     case "unpaid":
       return "INCOMPLETE";
     default:
-      return "INCOMPLETE";
+      return "ACTIVE";
   }
 }
