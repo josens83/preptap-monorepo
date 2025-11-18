@@ -110,7 +110,7 @@ export function useExamTypeAccess(examType: string) {
  */
 export function useDailySessionLimit() {
   const { plan, isLoading: planLoading } = useSubscription();
-  const { data: todaySessions, isLoading: sessionsLoading} = trpc.practice.getTodayCount.useQuery();
+  const { data: todaySessions, isLoading: sessionsLoading } = trpc.practice.getTodayCount.useQuery();
 
   const todayCount = todaySessions || 0;
 

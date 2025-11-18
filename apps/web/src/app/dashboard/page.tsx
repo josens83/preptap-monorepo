@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { Button, Card, CardHeader, CardTitle, CardContent, Progress } from "@preptap/ui";
 import { trpc } from "@/lib/trpc/client";
 import Link from "next/link";
-import { DashboardSkeleton } from "@/components/loading";
+import { DashboardSkeleton } from "@/components/LoadingSkeletons";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();

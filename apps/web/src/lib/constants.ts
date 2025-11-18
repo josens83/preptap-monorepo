@@ -54,65 +54,12 @@ export const DIFFICULTY_LEVELS = [
   { value: 1.0, label: "매우 어려움", color: "bg-red-500" },
 ] as const;
 
-export const SUBSCRIPTION_PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: 0,
-    features: [
-      "일 5문제 풀이",
-      "기본 리포트",
-      "오답노트",
-    ],
-    limitations: [
-      "일일 문제 수 제한",
-      "고급 분석 미제공",
-    ],
-  },
-  {
-    id: "basic",
-    name: "Basic",
-    price: 9900,
-    priceMonthly: 9900,
-    features: [
-      "무제한 문제 풀이",
-      "기본 적응형 학습",
-      "상세 리포트",
-      "오답노트 무제한",
-    ],
-    popular: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 19900,
-    priceMonthly: 19900,
-    features: [
-      "Basic의 모든 기능",
-      "AI 적응형 학습",
-      "약점 분석 & 추천",
-      "간격 반복 학습",
-      "학습 통계 대시보드",
-      "우선 지원",
-    ],
-    popular: true,
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 39900,
-    priceMonthly: 39900,
-    features: [
-      "Pro의 모든 기능",
-      "1:1 맞춤 과외",
-      "실시간 질문 답변",
-      "맞춤형 학습 계획",
-      "모의고사 무제한",
-      "프리미엄 콘텐츠",
-    ],
-    popular: false,
-  },
-] as const;
+/**
+ * Subscription plans
+ *
+ * @deprecated Use SUBSCRIPTION_PLANS from '@/lib/stripe' instead
+ * This provides the single source of truth for subscription plans with Stripe integration
+ */
 
 export const QUESTION_TYPES = [
   { id: "MCQ", name: "객관식", icon: "☑️" },
