@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, adminProcedure } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
   /**
    * 모든 문의 조회 (관리자만)
    */
-  getAllContacts: protectedProcedure
+  getAllContacts: adminProcedure
     .input(
       z.object({
         status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CLOSED"]).optional(),
@@ -15,18 +14,6 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      // 관리자 권한 확인
-      const user = await ctx.prisma.user.findUnique({
-        where: { id: ctx.session.user.id },
-      });
-
-      if (user?.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "관리자 권한이 필요합니다.",
-        });
-      }
-
       const where = input.status ? { status: input.status } : {};
 
       const [contacts, total] = await Promise.all([
@@ -49,7 +36,7 @@ export const adminRouter = createTRPCRouter({
   /**
    * 문의 상태 업데이트 (관리자만)
    */
-  updateContactStatus: protectedProcedure
+  updateContactStatus: adminProcedure
     .input(
       z.object({
         contactId: z.string(),
@@ -57,18 +44,6 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // 관리자 권한 확인
-      const user = await ctx.prisma.user.findUnique({
-        where: { id: ctx.session.user.id },
-      });
-
-      if (user?.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "관리자 권한이 필요합니다.",
-        });
-      }
-
       const updated = await ctx.prisma.contactMessage.update({
         where: { id: input.contactId },
         data: { status: input.status },
@@ -83,19 +58,7 @@ export const adminRouter = createTRPCRouter({
   /**
    * 전체 사용자 통계 (관리자만)
    */
-  getStats: protectedProcedure.query(async ({ ctx }) => {
-    // 관리자 권한 확인
-    const user = await ctx.prisma.user.findUnique({
-      where: { id: ctx.session.user.id },
-    });
-
-    if (user?.role !== "ADMIN") {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "관리자 권한이 필요합니다.",
-      });
-    }
-
+  getStats: adminProcedure.query(async ({ ctx }) => {
     const [
       totalUsers,
       activeSubscriptions,

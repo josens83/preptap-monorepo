@@ -654,7 +654,6 @@ async function createSamplePracticeData(userId: string) {
           questionId: question.id,
           orderIndex: i,
           userAnswer: selectedChoice?.label || "A",
-          selectedChoiceId: selectedChoice?.id,
           isCorrect,
           elapsedMs: Math.floor(Math.random() * 60000) + 30000, // 30s - 90s
         },
