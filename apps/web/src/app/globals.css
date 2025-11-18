@@ -2,24 +2,295 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 255, 255, 255;
+/**
+ * 현대 고급 웹사이트 디자인 시스템
+ * Linear, Stripe, Vercel 스타일의 디자인 토큰
+ */
+
+@layer base {
+  :root {
+    /* ============================================ */
+    /* 컬러 시스템 - 라이트 모드 */
+    /* ============================================ */
+
+    /* 배경 */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --background-secondary: 240 5% 96%; /* #F4F5F7 */
+    --background-tertiary: 240 5% 98%;
+
+    /* 전경 (텍스트) */
+    --foreground: 240 10% 4%; /* #0A0B0D - 거의 검정 */
+    --foreground-secondary: 240 5% 34%; /* #525866 - 중간 회색 */
+    --foreground-tertiary: 240 4% 46%; /* #6E7485 - 연한 회색 */
+
+    /* 표면 (카드, 패널) */
+    --surface: 0 0% 100%;
+    --surface-hover: 240 5% 98%;
+
+    /* 테두리 */
+    --border: 240 6% 90%; /* #E3E4E8 - 얇은 테두리 */
+    --border-hover: 240 6% 82%;
+
+    /* 브랜드 컬러 (Primary) */
+    --primary: 217 91% 60%; /* #3B82F6 - 파란색 */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 55%;
+
+    /* Accent (강조색) */
+    --accent: 142 76% 36%; /* #16A34A - 초록색 */
+    --accent-foreground: 0 0% 100%;
+
+    /* 경고/위험 */
+    --destructive: 0 84% 60%; /* #EF4444 - 빨간색 */
+    --destructive-foreground: 0 0% 100%;
+
+    /* 링 (포커스) */
+    --ring: 217 91% 60%;
+    --ring-offset: 0 0% 100%;
+
+    /* 반지름 */
+    --radius: 0.5rem; /* 8px */
+
+    /* 그림자 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .dark {
+    /* ============================================ */
+    /* 컬러 시스템 - 다크 모드 (Linear/Vercel 스타일) */
+    /* ============================================ */
+
+    /* 배경 - 깊은 검정 기반 */
+    --background: 240 10% 4%; /* #09090B - 거의 검정 */
+    --background-secondary: 240 6% 10%; /* #18181B */
+    --background-tertiary: 240 5% 15%; /* #27272A */
+
+    /* 전경 (텍스트) - 높은 대비 */
+    --foreground: 0 0% 98%; /* #FAFAFA - 거의 흰색 */
+    --foreground-secondary: 240 5% 65%; /* #A1A1AA */
+    --foreground-tertiary: 240 5% 50%; /* #71717A */
+
+    /* 표면 */
+    --surface: 240 6% 10%;
+    --surface-hover: 240 5% 15%;
+
+    /* 테두리 - 극도로 얇고 섬세 */
+    --border: 240 4% 16%; /* #27272A */
+    --border-hover: 240 5% 26%;
+
+    /* 브랜드 컬러 - 다크 모드에서 더 밝게 */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 91% 65%;
+
+    /* Accent */
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    /* 경고/위험 */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* 링 */
+    --ring: 217 91% 60%;
+    --ring-offset: 240 10% 4%;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* 폰트 렌더링 최적화 (Stripe 스타일) */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }
+
+/* ============================================ */
+/* 유틸리티 클래스 */
+/* ============================================ */
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* 글래스모피즘 효과 */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* 그라데이션 글로우 (Linear 스타일) */
+  .gradient-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gradient-glow::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(59, 130, 246, 0.15) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .gradient-glow:hover::before {
+    opacity: 1;
+  }
+
+  /* 극세 테두리 */
+  .border-fine {
+    border-width: 0.5px;
+  }
+
+  /* 부드러운 그림자 (Stripe 스타일) */
+  .shadow-elegant {
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1),
+                0 3px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .dark .shadow-elegant {
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.4),
+                0 3px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  /* 부드러운 상승 효과 */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* 스크롤바 스타일링 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border-hover));
+  }
+
+  /* 애니메이션 유틸리티 */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+}
+
+/* ============================================ */
+/* 키프레임 애니메이션 */
+/* ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================ */
+/* 프로그레시브 향상 */
+/* ============================================ */
+
+/* 모션 선호하지 않는 사용자를 위한 접근성 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================ */
+/* 다크 모드 전환 애니메이션 */
+/* ============================================ */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 999;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 1;
 }
