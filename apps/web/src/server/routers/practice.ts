@@ -349,4 +349,27 @@ export const practiceRouter = createTRPCRouter({
 
       return sessions;
     }),
+
+  /**
+   * Get today's completed session count
+   * (for subscription limits)
+   */
+  getTodayCount: protectedProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const count = await ctx.prisma.practiceSession.count({
+      where: {
+        userId: ctx.session.user.id,
+        createdAt: {
+          gte: today,
+        },
+        completedAt: {
+          not: null,
+        },
+      },
+    });
+
+    return count;
+  }),
 });
