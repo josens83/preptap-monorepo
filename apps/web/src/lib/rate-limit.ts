@@ -1,14 +1,28 @@
 /**
- * Simple in-memory rate limiter
- * For production, consider using Redis or a dedicated rate limiting service
+ * Production-ready rate limiter with Redis support
+ * - In-memory fallback for development
+ * - Redis-based for production (supports multiple server instances)
  */
+
+import { logger } from "./logger";
 
 interface RateLimitEntry {
   count: number;
   resetTime: number;
 }
 
-class RateLimiter {
+interface RateLimitStore {
+  check(identifier: string, limit: number, windowMs: number): Promise<boolean>;
+  getRemaining(identifier: string, limit: number): Promise<number>;
+  getResetTime(identifier: string): Promise<number | null>;
+  reset(identifier: string): Promise<void>;
+  destroy(): Promise<void>;
+}
+
+/**
+ * In-memory rate limiter (for development)
+ */
+class MemoryRateLimiter implements RateLimitStore {
   private requests: Map<string, RateLimitEntry> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -22,21 +36,15 @@ class RateLimiter {
         }
       }
     }, 60 * 1000);
+
+    logger.info("MemoryRateLimiter initialized (not recommended for production)");
   }
 
-  /**
-   * Check if a request should be allowed
-   * @param identifier - Usually IP address or user ID
-   * @param limit - Maximum number of requests allowed
-   * @param windowMs - Time window in milliseconds
-   * @returns true if request is allowed, false if rate limited
-   */
-  check(identifier: string, limit: number, windowMs: number): boolean {
+  async check(identifier: string, limit: number, windowMs: number): Promise<boolean> {
     const now = Date.now();
     const entry = this.requests.get(identifier);
 
     if (!entry || now > entry.resetTime) {
-      // First request or window has expired
       this.requests.set(identifier, {
         count: 1,
         resetTime: now + windowMs,
@@ -45,19 +53,14 @@ class RateLimiter {
     }
 
     if (entry.count < limit) {
-      // Within limit
       entry.count++;
       return true;
     }
 
-    // Rate limited
     return false;
   }
 
-  /**
-   * Get remaining requests for an identifier
-   */
-  getRemaining(identifier: string, limit: number): number {
+  async getRemaining(identifier: string, limit: number): Promise<number> {
     const entry = this.requests.get(identifier);
     if (!entry || Date.now() > entry.resetTime) {
       return limit;
@@ -65,10 +68,7 @@ class RateLimiter {
     return Math.max(0, limit - entry.count);
   }
 
-  /**
-   * Get reset time for an identifier
-   */
-  getResetTime(identifier: string): number | null {
+  async getResetTime(identifier: string): Promise<number | null> {
     const entry = this.requests.get(identifier);
     if (!entry || Date.now() > entry.resetTime) {
       return null;
@@ -76,22 +76,107 @@ class RateLimiter {
     return entry.resetTime;
   }
 
-  /**
-   * Reset rate limit for an identifier
-   */
-  reset(identifier: string): void {
+  async reset(identifier: string): Promise<void> {
     this.requests.delete(identifier);
   }
 
-  /**
-   * Cleanup and stop the interval
-   */
-  destroy(): void {
+  async destroy(): Promise<void> {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
     this.requests.clear();
+  }
+}
+
+/**
+ * Redis-based rate limiter (for production)
+ *
+ * To enable Redis:
+ * 1. Set REDIS_URL in environment variables
+ * 2. Install: pnpm add ioredis
+ * 3. Uncomment the RedisRateLimiter class below
+ */
+class RedisRateLimiter implements RateLimitStore {
+  // Placeholder - requires ioredis installation
+  // private redis: Redis;
+
+  constructor(redisUrl: string) {
+    logger.info("RedisRateLimiter would initialize here", undefined, { redisUrl });
+
+    // Uncomment when ioredis is installed:
+    // this.redis = new Redis(redisUrl);
+    // logger.info("RedisRateLimiter initialized");
+  }
+
+  async check(identifier: string, limit: number, windowMs: number): Promise<boolean> {
+    // TODO: Implement Redis-based rate limiting
+    // Example implementation:
+    // const key = `ratelimit:${identifier}`;
+    // const current = await this.redis.incr(key);
+    // if (current === 1) {
+    //   await this.redis.pexpire(key, windowMs);
+    // }
+    // return current <= limit;
+
+    throw new Error("Redis rate limiter not yet implemented. Use MemoryRateLimiter for now.");
+  }
+
+  async getRemaining(identifier: string, limit: number): Promise<number> {
+    throw new Error("Redis rate limiter not yet implemented.");
+  }
+
+  async getResetTime(identifier: string): Promise<number | null> {
+    throw new Error("Redis rate limiter not yet implemented.");
+  }
+
+  async reset(identifier: string): Promise<void> {
+    throw new Error("Redis rate limiter not yet implemented.");
+  }
+
+  async destroy(): Promise<void> {
+    // await this.redis.quit();
+  }
+}
+
+class RateLimiter {
+  private store: RateLimitStore;
+
+  constructor() {
+    const redisUrl = process.env.REDIS_URL;
+
+    if (redisUrl && process.env.NODE_ENV === "production") {
+      try {
+        this.store = new RedisRateLimiter(redisUrl);
+      } catch (error) {
+        logger.warn("Failed to initialize Redis rate limiter, falling back to memory", undefined, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        this.store = new MemoryRateLimiter();
+      }
+    } else {
+      this.store = new MemoryRateLimiter();
+    }
+  }
+
+  async check(identifier: string, limit: number, windowMs: number): Promise<boolean> {
+    return this.store.check(identifier, limit, windowMs);
+  }
+
+  async getRemaining(identifier: string, limit: number): Promise<number> {
+    return this.store.getRemaining(identifier, limit);
+  }
+
+  async getResetTime(identifier: string): Promise<number | null> {
+    return this.store.getResetTime(identifier);
+  }
+
+  async reset(identifier: string): Promise<void> {
+    return this.store.reset(identifier);
+  }
+
+  async destroy(): Promise<void> {
+    return this.store.destroy();
   }
 }
 

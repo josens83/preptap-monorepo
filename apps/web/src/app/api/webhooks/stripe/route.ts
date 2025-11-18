@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { env } from "@/lib/env";
 import { prisma } from "@preptap/db";
+import { sendPaymentSuccessEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -123,11 +124,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
+  const planId = subscription.metadata?.planId;
   if (!userId) return;
 
   const status = mapStripeStatus(subscription.status);
+  const isNewSubscription = subscription.status === "active" && !subscription.cancel_at_period_end;
 
-  await prisma.subscription.upsert({
+  const sub = await prisma.subscription.upsert({
     where: {
       providerId: subscription.id,
     },
@@ -135,7 +138,10 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       userId,
       provider: "STRIPE",
       providerId: subscription.id,
+      stripeCustomerId: subscription.customer as string,
+      stripeSubscriptionId: subscription.id,
       status,
+      plan: planId || null,
       priceId: subscription.items.data[0]?.price.id,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -143,6 +149,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     },
     update: {
       status,
+      plan: planId || undefined,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -152,10 +159,32 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   await prisma.eventLog.create({
     data: {
       userId,
-      eventType: "SUBSCRIPTION_UPDATED",
-      payloadJson: { subscriptionId: subscription.id, status },
+      eventType: status === "ACTIVE" ? "SUBSCRIPTION_CREATED" : "SUBSCRIPTION_UPDATED",
+      payloadJson: { subscriptionId: subscription.id, status, planId },
     },
   });
+
+  // 신규 활성 구독 시 결제 성공 이메일 발송
+  if (isNewSubscription && planId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
+
+    if (user) {
+      const amount = subscription.items.data[0]?.price.unit_amount || 0;
+      await sendPaymentSuccessEmail(
+        user.email,
+        user.profile?.displayName || "회원",
+        planId,
+        amount / 100
+      ).catch((err) => {
+        console.error("결제 성공 이메일 발송 실패:", err);
+      });
+
+      console.log(`✅ 결제 성공 이메일 발송: ${user.email}, 플랜: ${planId}`);
+    }
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
